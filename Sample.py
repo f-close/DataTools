@@ -77,15 +77,46 @@ class Sample():
         self.std = np.std(self.data)
         print(f"Sample '{self.name}' was scaled!")
 
+    '''
+    Plots a histogram of the sample and overlays the pdf of the distribution it has been fit to.
+    If no distribution has been fit, overlay KDE.
+    
+    '''
     def view(self):
-        sns.displot(data=self.data, kde=True)
-        plt.show()
+
+        if self.dist_name:
+            dist = getattr(st, self.dist_name)
+             # if there are 3 dist params then the dist uses a shape parameter
+            if len(self.dist_params) == 3:
+                shape = self.dist_params[0]
+                loc = self.dist_params[1]
+                scale = self.dist_params[2]
+            else:
+                # Otherwise only use location and scalen parameters
+                loc = self.dist_params[0]
+                scale = self.dist_params[1]
+            
+            # Make the x,y vals to be plotted over the histogram
+            xvals = np.linspace(self.min, self.max, 100)
+            yvals = dist.pdf(xvals, shape, loc, scale)
+
+            #plot the histogram
+            sns.histplot(data=self.data, stat="density", bins=30)
+            #plot the pdf
+            plt.plot(xvals, yvals, color="blue", lw=2)
+            plt.show()
+
+        else:
+            #Use KDE if no distribution has been fit.
+            sns.displot(data=self.data, kde=True)
+            plt.show()
+
 
     def qq(self):
 
         # TODO: Use correct range for quantile calculations.
         # Split the observed data into equal inervals 
-        quants = np.arange(self.min, self.max, (self.max-self.min)/20)
+        quants = np.arange(self.min, self.max+1, (self.max-self.min)/len(self.data))
         dist = getattr(st, self.dist_name) # Access the fit distribution
 
         # if there are 3 dist params then the dist uses a shape parameter
@@ -127,6 +158,7 @@ class Sample():
 
         # This is analagous to a QQ plot but not quite right because of the qunatiles chosen earlier
         sns.scatterplot(x=df["CDF"], y=df["EMP CDF"])
+        plt.plot([0,1], [0,1], color="black", lw=2)
         plt.show()
 
 
@@ -153,16 +185,11 @@ if __name__ == "__main__":
         s1 = Sample("total_bill", x)
         s2 = Sample("tip", y)
         
+        s2.summary()
+        s2.auto_fit()
+        s2.qq()
 
-        
-        s1.summary()
-        s1.auto_fit()
-        s1.summary()
-
-
-        #s1.view()
-
-        s1.qq()
+        s2.view()
 
 
         '''
